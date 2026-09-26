@@ -1,1 +1,569 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>バランス献立アプリ</title>
+    <style>
+        :root {
+            --primary: #557A46;
+            --primary-light: #739E62;
+            --primary-dark: #3F5E33;
+            --bg-color: #F7F9F5;
+            --card-bg: #FFFFFF;
+            --text-main: #333333;
+            --text-sub: #666666;
+            --border-color: #DDE5D6;
+            --radius: 16px;
+            --shadow: 0 4px 16px rgba(85, 122, 70, 0.08);
+        }
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 800px;
+            overflow: hidden;
+        }
+
+        .app-header {
+            background-color: var(--primary);
+            color: white;
+            padding: 16px 20px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #FAFAFA;
+        }
+
+        .chat-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            max-width: 90%;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .chat-row.app {
+            align-self: flex-start;
+        }
+
+        .chat-row.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .chibi-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #EAEFE5;
+            border: 2px solid var(--primary);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        .chibi-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .bubble {
+            padding: 14px 16px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            white-space: pre-line;
+        }
+
+        .chat-row.app .bubble {
+            background: white;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-row.user .bubble {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .options-area {
+            padding: 16px 20px;
+            background: white;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .day-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            width: 100%;
+        }
+
+        .day-header {
+            background: var(--primary-light);
+            color: white;
+            padding: 8px 14px;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .meal-row {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meal-row:hover {
+            background-color: #F2F7ED;
+        }
+
+        .meal-row:last-child {
+            border-bottom: none;
+        }
+
+        .meal-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .meal-type {
+            font-weight: 700;
+            color: var(--primary-dark);
+            font-size: 0.8rem;
+        }
+
+        .recipe-hint {
+            font-size: 0.75rem;
+            color: var(--primary);
+            background: #EAF3E5;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* レシピ詳細カード（チャット内） */
+        .recipe-box {
+            background: #F9FBF7;
+            border: 1px solid var(--primary-light);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+
+        .recipe-title {
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 6px;
+            font-size: 1rem;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 4px;
+        }
+
+        .recipe-section-title {
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 8px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="app-header">
+        🥗 バランス献立パートナー
+    </div>
+
+    <div class="chat-container" id="chatContainer"></div>
+
+    <div class="options-area" id="optionsArea"></div>
+</div>
+
+<script>
+    const chibiFaces = {
+        hello: 'MiniAyuHello.png',
+        think: 'MiniAyuThink.png',
+        suggestion: 'MiniAyuSuggestion.png',
+        happy: 'MiniAyuHappy.png',
+        releved: 'MiniAyuReleved.png',
+        surprise: 'MiniAyuSurprise.png'
+    };
+
+    // メニューごとの詳細レシピ・アドバイスデータ
+    const recipeDatabase = {
+        '全粒粉トーストとスクランブルエッグ': {
+            ingredients: '・全粒粉食パン: 1枚\n・卵: 1個\n・牛乳または豆乳: 小さじ1\n・バターまたはオリーブオイル: 少々',
+            steps: '1. 卵を溶きほぐし、牛乳を混ぜ合わせる。\n2. フライパンに油を熱し、ふんわりとしたスクランブルエッグを作る。\n3. 軽くトーストした全粒粉パンにのせて完成！',
+            tip: '🌿 全粒粉の食物繊維と卵の良質なタンパク質で、朝から血糖値を緩やかに保ちながらエネルギーをチャージできます。'
+        },
+        '具だくさんミネストローネ': {
+            ingredients: '・玉ねぎ、人参、キャベツ、トマト缶\n・大豆水煮: 50g\n・コンソメ顆粒、オリーブオイル',
+            steps: '1. 野菜を食べやすい大きさにさいの目に切る。\n2. 鍋にオリーブオイルを熱し、野菜を炒めてからトマト缶と水を加える。\n3. 柔らかくなるまで煮込み、コンソメで味を調える。',
+            tip: '💡 根菜とトマトの抗酸化作用で、お腹の中からポカポカ温まり免疫力をサポートします。'
+        },
+        '旬野菜とサーモンのハーブホイル焼き': {
+            ingredients: '・生鮭の切り身: 1切れ\n・お好みのきのこ、アスパラ\n・塩コショウ、ハーブ（ディルやタイム）、バター',
+            steps: '1. アルミホイルに薄切り野菜と鮭をのせる。\n2. 塩コショウ、ハーブ、バターをのせてしっかりと包む。\n3. トースターまたは魚焼きグリルで15分ほど焼き上げる。',
+            tip: '🐟 サーモンのアスタキサンチンと良質なオメガ3脂肪酸が、お肌や血管の健康を優しく守ります。'
+        },
+        'お豆腐とワカメの和風スープ': {
+            ingredients: '・豆腐: 1/4丁\n・乾燥ワカメ: 少々\n・だし汁、醤油、おろし生姜',
+            steps: '1. 鍋にだし汁を温め、食べやすく切った豆腐とワカメを加える。\n2. 醤油で味を調え、仕上げにおろし生姜をほんのり加える。',
+            tip: '🍵 朝の胃腸に優しい温かいスープ。生姜の力で血行を促し、朝の代謝を目覚めさせます。'
+        },
+        'ラップサンドイッチ': {
+            ingredients: '・トルティーヤまたは薄焼き卵\n・鶏ささみ（ボイルしてほぐす）\n・レタス、千切り人参、マヨネーズ＆マスタード',
+            steps: '1. トルティーヤに野菜と鶏ささみをのせる。\n2. ソースをかけてクルクルと巻き、食べやすく半分にカットする。',
+            tip: '✨ 高タンパク・低脂質な鶏ささみで、お昼からも軽やかに動けるヘルシーランチです。'
+        },
+        '豚肉とたっぷりキノコの生姜焼き': {
+            ingredients: '・豚肉薄切り: 100g\n・しめじ、エリンギなどお好みのキノコ\n・醤油、みりん、生姜すりおろし',
+            steps: '1. フライパンで豚肉とキノコを炒める。\n2. 合わせ調味料を回しかけ、汁気が少なくなるまで手早く炒め合わせる。',
+            tip: '🍄 キノコの食物繊維とビタミンB群が疲労回復を助け、元気を取り戻してくれます。'
+        },
+        'アボカドチーズトースト': {
+            ingredients: '・食パン: 1枚\n・アボカド: 1/2個\n・ピザ用チーズ、レモン汁少々',
+            steps: '1. スライスしたアボカドをパンにのせ、レモン汁を軽く振る。\n2. チーズをのせてトースターでこんがり焼き上げる。',
+            tip: '🥑 「森のバター」と呼ばれるアボカドの良質な脂質が、美肌とホルモンバランスを整えます。'
+        },
+        'レンズ豆と根菜のヘルシーポトフ': {
+            ingredients: '・レンズ豆（乾燥または水煮）\n・大根、レンコン、人参\n・ローリエ、塩、オリーブオイル',
+            steps: '1. 根菜を大きめに切り、レンズ豆と一緒に鍋に入れる。\n2. 水とローリエを加え、柔らかくなるまでじっくり煮込む。',
+            tip: '🌿 レンズ豆は植物性タンパク質と鉄分が豊富。胃腸を労わりたい時にぴったりの一品です。'
+        },
+        '白身魚のふんわり和風あんかけ': {
+            ingredients: '・白身魚（タラやタイなど）: 1切れ\n・片栗粉、お好みの野菜あん（出汁、醤油、みりん、生姜）',
+            steps: '1. 白身魚に片栗粉をまぶし、少量の油で焼き上げる。\n2. 温めた和風あんを上からとろりとかける。',
+            tip: '🐟 消化吸収が良く胃腸に負担をかけないため、夕食を軽く済ませたい夜におすすめです。'
+        },
+        'ギリシャヨーグルトと果物': {
+            ingredients: '・ギリシャヨーグルト: 1カップ\n・季節のフルーツ（ベリーやキウイなど）\n・ハチミツ少々',
+            steps: '1. 器にヨーグルトを盛る。\n2. フルーツをトッピングし、お好みでハチミツをかける。',
+            tip: '✨ 腸内環境を整える発酵食品とビタミンCの組み合わせで、朝からすっきり爽やか！'
+        },
+        'ツナとブロッコリーの全粒粉パスタ': {
+            ingredients: '・全粒粉パスタ: 1人分\n・ツナ缶（水煮）: 1缶\n・ブロッコリー: 適量、ニンニク、オリーブオイル',
+            steps: '1. パスタを茹で、ブロッコリーも一緒に茹でる。\n2. フライパンにオリーブオイルとニンニク、ツナを炒め、パスタと和える。',
+            tip: '🥦 ブロッコリーのビタミンCとスルフォラファンが、体の抗酸化力を高めてくれます。'
+        },
+        'ひき肉と彩りピーマンのドライカレー': {
+            ingredients: '・合いびき肉または大豆ミート: 80g\n・ピーマン、玉ねぎ（みじん切り）\n・カレー粉、ケチャップ、ソース少々',
+            steps: '1. 野菜とひき肉をフライパンでしっかり炒める。\n2. カレー粉と調味料で味付けし、水分を飛ばしながら炒める。',
+            tip: '🍛 スパイスの香りが食欲をそそり、新陳代謝を高めてくれる元気になるランチです。'
+        },
+        '温かい豆乳スープと米粉パン': {
+            ingredients: '・無調整豆乳: 200ml\n・ベーコンまたは玉ねぎ、コンソメ少々\n・米粉パン',
+            steps: '1. 鍋に刻んだ具材と少量の水を入れ、火を通す。\n2. 豆乳を加え、沸騰させないように温めてコンソメで味を調える。',
+            tip: '🥛 植物性エストロゲンを含む豆乳が、心身を優しくリラックスさせてくれます。'
+        },
+        '鶏ささみサラダボウル': {
+            ingredients: '・鶏ささみ、レタス、トマト、ゆで卵\n・お好みのドレッシング（オリーブオイルと塩レモンなど）',
+            steps: '1. ボウルにちぎった野菜を敷き詰める。\n2. 裂いたささみとゆで卵をトッピングしてドレッシングをかける。',
+            tip: '🥗 栄養バランスが完璧に詰まったボウル。よく噛むことで満腹中枢も刺激されます。'
+        },
+        '大豆と根菜のほっこり和風煮物': {
+            ingredients: '・大豆水煮、レンコン、ごぼう、人参、こんにゃく\n・だし汁、醤油、みりん、酒',
+            steps: '1. 乱切りにした根菜とこんにゃくを軽く炒める。\n2. 大豆と調味料を加え、汁気が少なくなるまでじっくり煮含める。',
+            tip: '🍵 伝統的な和食の知恵が詰まった煮物。食物繊維が腸内環境をしっかりと整えます。'
+        },
+        'ほうれん草と卵のココット風': {
+            ingredients: '・ほうれん草: 1/2束\n・卵: 1個\n・牛乳、塩コショウ、チーズ',
+            steps: '1. 茹でたほうれん草を耐熱容器に入れ、卵を割り入れる。\n2. チーズと塩コショウをかけ、オーブンやトースターで焼く。',
+            tip: '🌿 ほうれん草の鉄分と卵の栄養で、朝から血流を促し活力を高めます。'
+        },
+        '海藻と豆腐のさっぱり和風丼': {
+            ingredients: '・ご飯（雑穀米など）: 1膳\n・豆腐、メカブやワカメ、青ネギ、醤油やポン酢',
+            steps: '1. ご飯の上にちぎった豆腐と海藻をたっぷりとのせる。\n2. ネギを散らし、ポン酢や醤油を回しかけていただく。',
+            tip: '🌱 ミネラル豊富な海藻と植物性タンパク質で、体に負担をかけずスッキリ食べられます。'
+        },
+        'チキンと夏野菜のトマト煮込み': {
+            ingredients: '・鶏もも肉: 100g\n・ズッキーニ、ナス、トマト水煮缶\n・ニンニク、コンソメ',
+            steps: '2. 鶏肉と野菜を一口大に切り、鍋で軽く炒める。\n3. トマト缶を加え、具材が柔らかくなるまで煮込む。',
+            tip: '🍅 トマトのリコピンと夏野菜の水分・ビタミンで、細胞からイキイキと元気になります。'
+        },
+        '和風モーニングプレート': {
+            ingredients: '・焼き鮭、お味噌汁（豆腐とワカメ）、ご飯、漬物',
+            steps: '1. 鮭を香ばしく焼き上げる。\n2. お味噌汁を温め、ご飯と一緒にワンプレートに並べる。',
+            tip: '🍚 日本の伝統的な朝食は、一日の体内リズムを整えるのに最も理想的なスタイルです。'
+        },
+        'お豆と雑穀のスープ': {
+            ingredients: '・ミックスビーンズ、雑穀ミックス\n・コンソメスープ、玉ねぎみじん切り',
+            steps: '1. 鍋で玉ねぎとミックスビーンズを軽く炒める。\n2. スープと雑穀を加え、柔らかくなるまで煮込む。',
+            tip: '🥣 豊富な食物繊維と豆の栄養が、お腹の中から優しくデトックスを促してくれます。'
+        },
+        '手作り餃子と中華スープ': {
+            ingredients: '・豚ひき肉、キャベツ、ニラ、餃子の皮\n・中華スープの素、ワカメ、卵',
+            steps: '1. 具材を混ぜ合わせて皮で包み、フライパンでパリッと焼き上げる。\n2. 溶き卵とワカメの中華スープを添える。',
+            tip: '🥟 家族や大切な人と一緒に囲む食事の時間そのものが、最高のストレス解消と心の栄養になります。'
+        }
+    };
+
+    let userData = { mood: '', people: '', style: '' };
+
+    const chatContainer = document.getElementById('chatContainer');
+    const optionsArea = document.getElementById('optionsArea');
+
+    function addBubble(text, faceKey = 'hello') {
+        const row = document.createElement('div');
+        row.className = 'chat-row app';
+
+        const avatarImgSrc = chibiFaces[faceKey] || chibiFaces.hello;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'chibi-avatar';
+        avatar.innerHTML = `<img src="${avatarImgSrc}" alt="ちびキャラ" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><circle cx=\'12\' cy=\'12\' r=\'10\' fill=\'%23557A46\'/><text x=\'12\' y=\'16\' font-size=\'12\' fill=\'white\' text-anchor=\'middle\'>😊</text></svg>'">`;
+        row.appendChild(avatar);
+
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.innerText = text;
+        row.appendChild(bubble);
+
+        chatContainer.appendChild(row);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function clearOptions() {
+        optionsArea.innerHTML = '';
+    }
+
+    function startChat() {
+        addBubble("こんにちは！今週のごはんを一緒に楽しく考えましょう♪\nまず、今のあなたの体調や気分に一番近いものはどれですか？", "hello");
+        
+        showOptions([
+            { text: "✨ すっきり元気！しっかり動きたい", next: () => selectMood("元気") },
+            { text: "🍵 少しお疲れ気味で、ホッとひと息つきたい", next: () => selectMood("お疲れ") },
+            { text: "🌿 胃腸を休めて、優しく労わりたい", next: () => selectMood("労わりたい") }
+        ]);
+    }
+
+    function showOptions(options) {
+        clearOptions();
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt.text;
+            btn.onclick = () => {
+                const userRow = document.createElement('div');
+                userRow.className = 'chat-row user';
+                userRow.innerHTML = `<div class="bubble">${opt.text}</div>`;
+                chatContainer.appendChild(userRow);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                clearOptions();
+                opt.next();
+            };
+            optionsArea.appendChild(btn);
+        });
+    }
+
+    function selectMood(mood) {
+        userData.mood = mood;
+        setTimeout(() => {
+            const nextFace = mood === '元気' ? 'think' : 'releved';
+            addBubble(`教えてくれてありがとう！続いて、何人分のごはんを作りますか？`, nextFace);
+            
+            showOptions([
+                { text: "👤 1人分", next: () => selectPeople("1人分") },
+                { text: "👥 2人分", next: () => selectPeople("2人分") },
+                { text: "👨‍👩‍👧 3〜4人分", next: () => selectPeople("3〜4人分") }
+            ]);
+        }, 500);
+    }
+
+    function selectPeople(people) {
+        userData.people = people;
+        setTimeout(() => {
+            addBubble("おっけー！最後に、お好みの食事スタイルを教えてね。", "suggestion");
+            
+            showOptions([
+                { text: "🥩 肉も魚もバランスよく食べたい", next: () => selectStyle("バランス") },
+                { text: "🐟 魚・シーフード中心にしたい", next: () => selectStyle("魚中心") },
+                { text: "🌱 野菜や大豆中心にヘルシーにいきたい", next: () => selectStyle("野菜中心") }
+            ]);
+        }, 500);
+    }
+
+    function selectStyle(style) {
+        userData.style = style;
+        setTimeout(() => {
+            addBubble("あなたの気分やスタイルに合わせて、今週の献立を組み立てるね…✨\n気になったメニューをポチッと押すと、材料や作り方も教えるね！", "surprise");
+            
+            setTimeout(() => {
+                showMenuResult();
+            }, 1200);
+        }, 500);
+    }
+
+    function showMenuResult() {
+        addBubble(`お待たせしました！\n(${userData.people} ／ スタイル: ${userData.style} ／ 気分: ${userData.mood}) に合わせた今週の献立一覧です♪\n\n👇 **気になるメニューを押してみてね！**`, "happy");
+
+        const menuContainer = document.createElement('div');
+        menuContainer.style.display = 'flex';
+        menuContainer.style.flexDirection = 'column';
+        menuContainer.style.gap = '8px';
+        menuContainer.style.width = '100%';
+
+        const days = [
+            { day: '月曜日', b: '全粒粉トーストとスクランブルエッグ', l: '具だくさんミネストローネ', d: '旬野菜とサーモンのハーブホイル焼き' },
+            { day: '火曜日', b: 'お豆腐とワカメの和風スープ', l: 'ラップサンドイッチ', d: '豚肉とたっぷりキノコの生姜焼き' },
+            { day: '水曜日', b: 'アボカドチーズトースト', l: 'レンズ豆と根菜のポトフ', d: '白身魚のふんわり和風あんかけ' },
+            { day: '木曜日', b: 'ギリシャヨーグルトと果物', l: 'ツナとブロッコリーの全粒粉パスタ', d: 'ひき肉と彩りピーマンのドライカレー' },
+            { day: '金曜日', b: '温かい豆乳スープと米粉パン', l: '鶏ささみサラダボウル', d: '大豆と根菜のほっこり和風煮物' },
+            { day: '土曜日', b: 'ほうれん草と卵のココット風', l: '海藻と豆腐のさっぱり和風丼', d: 'チキンと夏野菜のトマト煮込み' },
+            { day: '日曜日', b: '和風モーニングプレート', l: 'お豆と雑穀のスープ', d: '手作り餃子と中華スープ' }
+        ];
+
+        days.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'day-card';
+            
+            let cardHtml = `<div class="day-header">${item.day}</div>`;
+            
+            ['朝: ' + item.b, '昼: ' + item.l, '夕: ' + item.d].forEach(mealText => {
+                const dishName = mealText.split(': ')[1];
+                const typeLabel = mealText.split(': ')[0];
+                
+                cardHtml += `
+                    <div class="meal-row" onclick="showRecipe('${dishName}')">
+                        <div class="meal-info">
+                            <span class="meal-type">${typeLabel}</span>
+                            <span style="font-weight: 600; color: var(--text-main);">${dishName}</span>
+                        </div>
+                        <span class="recipe-hint">レシピを見る 📖</span>
+                    </div>
+                `;
+            });
+
+            card.innerHTML = cardHtml;
+            menuContainer.appendChild(card);
+        });
+
+        chatContainer.appendChild(menuContainer);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        showOptions([
+            { text: "🔄 最初からもう一度相談する", next: () => { chatContainer.innerHTML = ''; startChat(); } }
+        ]);
+    }
+
+    // レシピを表示する関数
+    function showRecipe(dishName) {
+        const recipe = recipeDatabase[dishName] || {
+            ingredients: '・お好みの食材',
+            steps: '1. 食材を食べやすく切る。\n2. 調味料で味を調えて調理する。',
+            tip: '🌿 バランスよく栄養を摂って、美味しく元気に過ごしましょう！'
+        };
+
+        // ちびキャラがレシピを教えてくれる吹き出しを表示
+        const row = document.createElement('div');
+        row.className = 'chat-row app';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'chibi-avatar';
+        avatar.innerHTML = `<img src="${chibiFaces.suggestion}" alt="ちびキャラ" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' width=\'24\' height=\'24\'><circle cx=\'12\' cy=\'12\' r=\'10\' fill=\'%23557A46\'/><text x=\'12\' y=\'16\' font-size=\'12\' fill=\'white\' text-anchor=\'middle\'>💡</text></svg>'">`;
+        row.appendChild(avatar);
+
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.innerHTML = `
+            「${dishName}」の作り方とポイントだね！✨
+            <div class="recipe-box">
+                <div class="recipe-title">🍳 ${dishName}</div>
+                <div class="recipe-section-title">【材料】</div>
+                <div style="white-space: pre-line; margin-bottom: 6px;">${recipe.ingredients}</div>
+                <div class="recipe-section-title">【かんたん作り方】</div>
+                <div style="white-space: pre-line; margin-bottom: 6px;">${recipe.steps}</div>
+                <div class="recipe-section-title">【💡 ナチュラルフードのポイント】</div>
+                <div>${recipe.tip}</div>
+            </div>
+        `;
+        row.appendChild(bubble);
+
+        chatContainer.appendChild(row);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    startChat();
+</script>
+
+</body>
+</html>
